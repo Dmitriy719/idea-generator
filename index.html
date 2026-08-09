@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Генератор идей</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 8px 0 16px;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin: 24px 0 10px;
+        }
+
+        .card {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        input,
+        textarea,
+        pre {
+            width: 100%;
+            background: #020617;
+            color: #e5e7eb;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 10px;
+            font-size: 15px;
+        }
+
+        input {
+            max-width: 180px;
+        }
+
+        textarea {
+            min-height: 220px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        pre {
+            min-height: 240px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        button {
+            border: 0;
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            background: #334155;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .status {
+            min-height: 24px;
+            color: #86efac;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .small {
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        code {
+            background: #020617;
+            padding: 2px 6px;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 700px) {
+            button {
+                width: 100%;
+            }
+
+            input {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <h1>Генератор идей</h1>
+
+        <div class="card">
+            <div class="row">
+                <label for="count">Сколько идей:</label>
+                <input id="count" type="number" min="1" max="100" value="10" />
+                <button id="generate">Сгенерировать идеи</button>
+                <button id="copyIdeas" class="secondary">Копировать идеи</button>
+                <button id="downloadIdeas" class="secondary">Скачать идеи</button>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+
+        <div class="card">
+            <h2>Идеи</h2>
+            <pre id="ideasOutput"></pre>
+        </div>
+
+        <div class="card">
+            <h2>Шаблон промта</h2>
+            <p class="small">
+                Используй <code>{ideas}</code> — приложение автоматически вставит туда сгенерированные идеи.
+                Ты можешь изменить текст промта и нажать «Сохранить промт».
+            </p>
+            <textarea id="promptTemplate"></textarea>
+
+            <div class="row" style="margin-top: 10px;">
+                <button id="buildPrompt">Собрать промт</button>
+                <button id="copyPrompt" class="secondary">Копировать промт</button>
+                <button id="downloadPrompt" class="secondary">Скачать промт</button>
+                <button id="savePrompt" class="secondary">Сохранить промт</button>
+                <button id="resetPrompt" class="secondary">Сбросить промт</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Готовый промт для нейросети</h2>
+            <textarea
+                id="promptOutput"
+                readonly
+                placeholder="Здесь появится промт. Сначала сгенерируй идеи и нажми «Собрать промт»."
+            ></textarea>
+        </div>
+    </main>
+
+    <script>
+        const DEFAULT_PROMPT = `Ты — продуктовый стратег для соло-разработчика.
+
+Ограничения:
+- разработка идёт на смартфоне и в UserLAnd;
+- лучше использовать Python, Telegram Bot API, Google Sheets, SQLite, простые веб-формы;
+- MVP должен быть возможен за 1-2 недели;
+- не предлагай сложные мобильные приложения, большие SaaS, игры и проекты с тяжёлой инфраструктурой.
+
+Ниже список черновых идей. Выбери 5 самых выгодных и для каждой напиши:
+
+1. Клиент.
+2. Боль клиента.
+3. Какую пользу получит клиент.
+4. Какой минимальный MVP.
+5. Как найти первого клиента.
+6. За что именно клиент заплатит.
+7. Основные риски.
+
+Список идей:
+
+{ideas}`;
+
+        const CLIENTS = {
+            "локальные услуги": [
+                "салоны красоты",
+                "автосервисы",
+                "шиномонтаж",
+                "клининг",
+                "ремонт квартир",
+                "ремонт телефонов",
+                "ветклиники",
+                "фотостудии"
+            ],
+            "торговля": [
+                "интернет-магазины",
+                "селлеры маркетплейсов",
+                "кафе и доставка еды",
+                "небольшие магазины",
+                "оптовики"
+            ],
+            "эксперты": [
+                "репетиторы",
+                "психологи",
+                "бухгалтеры",
+                "маркетологи",
+                "коучи",
+                "онлайн-школы"
+            ],
+            "операционные команды": [
+                "логисты",
+                "склады",
+                "управляющие компании",
+                "клининговые компании",
+                "охранные компании"
+            ]
+        };
+
+        const PAINS = [
+            "заявки теряются в мессенджерах",
+            "много ручного ввода в таблицы",
+            "нет напоминаний клиентам",
+            "отчёты собираются вручную",
+            "не видна прибыль по заказам",
+            "клиенты не получают быстрый ответ",
+            "нет базы клиентов для повторных продаж",
+            "сотрудники забывают чек-листы",
+            "сложно контролировать статусы работ",
+            "много однотипных вопросов от клиентов"
+        ];
+
+        const SOLUTIONS = [
+            "Telegram-бот приёма заявок + Google Sheets",
+            "автоотчёт в Telegram по данным из таблицы",
+            "веб-форма записи/заявки с уведомлениями",
+            "скрипт сверки данных и алерты",
+            "мини-CRM: статусы, комментарии, напоминания",
+            "генератор документов/смет/КП из шаблона",
+            "бот FAQ и сбор отзывов",
+            "бот напоминаний и повторных продаж",
+            "журнал задач для сотрудников в Telegram",
+            "автоматический перенос данных в таблицу"
+        ];
+
+        const BENEFITS = [
+            "меньше потерянных заявок",
+            "экономия 5–15 часов в неделю",
+            "быстрее ответ клиенту",
+            "больше повторных продаж",
+            "меньше ошибок в учёте",
+            "руководитель видит цифры без ручных отчётов",
+            "меньше нагрузки на администратора",
+            "контроль сотрудников без сложных систем"
+        ];
+
+        const OFFERS = [
+            "разовая разработка + поддержка",
+            "подписка за бота/отчёт",
+            "пилот за символическую оплату за отзыв",
+            "коробочное решение + настройка",
+            "внедрение + обучение"
+        ];
+
+        const CHANNELS = [
+            "написать 20 компаниям напрямую",
+            "предложить партнёру: маркетологу или бухгалтеру",
+            "разместить кейс в профильном чате",
+            "сделать демо и показать локальному бизнесу",
+            "опубликовать мини-инструкцию с примером решения",
+            "спросить в чате предпринимателей про боль"
+        ];
+
+        const STORAGE_KEY = "ideaGeneratorPromptTemplate";
+
+        function $(id) {
+            return document.getElementById(id);
+        }
+
+        function randomItem(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function generateIdeas(count) {
+            const segments = Object.keys(CLIENTS);
+            const lines = [];
+
+            for (let i = 1; i <= count; i++) {
+                const segment = randomItem(segments);
+                const client = randomItem(CLIENTS[segment]);
+                const pain = randomItem(PAINS);
+                const solution = randomItem(SOLUTIONS);
+                const benefit = randomItem(BENEFITS);
+                const offer = randomItem(OFFERS);
+                const channel = randomItem(CHANNELS);
+
+                lines.push(`${i}. Клиент: ${client}
+   Сегмент: ${segment}
+   Боль: ${pain}
+   Решение: ${solution}
+   Польза: ${benefit}
+   Продажа: ${offer}
+   Канал привлечения: ${channel}`);
+            }
+
+            return lines.join("\n\n");
+        }
+
+        let statusTimer = null;
+
+        function showStatus(message) {
+            const status = $("status");
+            status.textContent = message;
+
+            if (statusTimer) {
+                clearTimeout(statusTimer);
+            }
+
+            statusTimer = setTimeout(() => {
+                status.textContent = "";
+            }, 3000);
+        }
+
+        function handleGenerate() {
+            const countInput = $("count");
+            let count = parseInt(countInput.value, 10);
+
+            if (Number.isNaN(count) || count < 1) {
+                count = 10;
+            }
+
+            if (count > 100) {
+                count = 100;
+            }
+
+            countInput.value = count;
+
+            const ideasText = generateIdeas(count);
+            $("ideasOutput").textContent = ideasText;
+
+            showStatus(`Идеи сгенерированы: ${count}`);
+        }
+
+        function handleBuildPrompt() {
+            const ideas = $("ideasOutput").textContent.trim();
+            const template = $("promptTemplate").value.trim();
+            const ideasToInsert = ideas || "Идеи пока не сгенерированы.";
+
+            let finalPrompt;
+
+            if (template.includes("{ideas}")) {
+                finalPrompt = template.split("{ideas}").join(ideasToInsert);
+            } else {
+                finalPrompt = template + "\n\nСписок идей:\n\n" + ideasToInsert;
+            }
+
+            $("promptOutput").value = finalPrompt;
+            showStatus("Промт собран");
+        }
+
+        async function copyText(text) {
+            if (!text.trim()) {
+                showStatus("Нечего копировать");
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(text);
+                showStatus("Скопировано");
+            } catch (error) {
+                const textarea = document.createElement("textarea");
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+
+                try {
+                    document.execCommand("copy");
+                    showStatus("Скопировано");
+                } catch (fallbackError) {
+                    showStatus("Не удалось скопировать");
+                }
+
+                document.body.removeChild(textarea);
+            }
+        }
+
+        function downloadFile(filename, text) {
+            if (!text.trim()) {
+                showStatus("Нечего скачивать");
+                return;
+            }
+
+            const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+            showStatus(`Файл ${filename} скачивается`);
+        }
+
+        function loadPromptTemplate() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+
+            if (saved === null) {
+                $("promptTemplate").value = DEFAULT_PROMPT;
+            } else {
+                $("promptTemplate").value = saved;
+            }
+        }
+
+        function savePromptTemplate() {
+            localStorage.setItem(STORAGE_KEY, $("promptTemplate").value);
+            showStatus("Промт сохранён в браузере");
+        }
+
+        function resetPromptTemplate() {
+            localStorage.removeItem(STORAGE_KEY);
+            $("promptTemplate").value = DEFAULT_PROMPT;
+            showStatus("Промт сброшен");
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadPromptTemplate();
+
+            $("generate").addEventListener("click", () => {
+                handleGenerate();
+                handleBuildPrompt();
+            });
+
+            $("buildPrompt").addEventListener("click", handleBuildPrompt);
+
+            $("copyIdeas").addEventListener("click", () => {
+                copyText($("ideasOutput").textContent);
+            });
+
+            $("copyPrompt").addEventListener("click", () => {
+                copyText($("promptOutput").value);
+            });
+
+            $("downloadIdeas").addEventListener("click", () => {
+                downloadFile("ideas.txt", $("ideasOutput").textContent);
+            });
+
+            $("downloadPrompt").addEventListener("click", () => {
+                downloadFile("prompt.txt", $("promptOutput").value);
+            });
+
+            $("savePrompt").addEventListener("click", savePromptTemplate);
+            $("resetPrompt").addEventListener("click", resetPromptTemplate);
+
+            // При первом запуске сразу генерируем идеи и промт
+            handleGenerate();
+            handleBuildPrompt();
+        });
+    </script>
+</body>
+              </html>
