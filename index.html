@@ -8,8 +8,8 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#2563eb" />
 
-    <link rel="icon" href="icons/icon-192.png" type="image/png" />
-    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="icon" href="icons/icon-192-v2.png" type="image/png" />
+    <link rel="apple-touch-icon" href="icons/icon-192-v2.png" />
 
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -260,13 +260,13 @@
             <h2>Иконки для установки</h2>
 
             <p class="small">
-                Скачай <code>icon-192.png</code> и <code>icon-512.png</code>.
+                Скачай <code>icon-192-v2.png</code> и <code>icon-512-v2.png</code>.
                 Затем загрузи их в папку <code>icons/</code> в твоём репозитории GitHub.
             </p>
 
             <div class="row">
-                <button id="downloadIcon192" class="secondary">Скачать icon-192.png</button>
-                <button id="downloadIcon512" class="secondary">Скачать icon-512.png</button>
+                <button id="downloadIcon192" class="secondary">Скачать icon-192-v2.png</button>
+                <button id="downloadIcon512" class="secondary">Скачать icon-512-v2.png</button>
             </div>
 
             <div class="previews">
@@ -1272,11 +1272,11 @@
             $("resetPrompt").addEventListener("click", resetPromptTemplate);
 
             $("downloadIcon192").addEventListener("click", () => {
-                downloadAppIcon(192, "icon-192.png");
+                downloadAppIcon(192, "icon-192-v2.png");
             });
 
             $("downloadIcon512").addEventListener("click", () => {
-                downloadAppIcon(512, "icon-512.png");
+                downloadAppIcon(512, "icon-512-v2.png");
             });
 
             const clearCacheButton = $("clearCache");
@@ -1317,4 +1317,4 @@
         });
     </script>
 </body>
-                </html>
+    </html>
