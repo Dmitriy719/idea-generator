@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Генератор идей разработки</title>
+
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <link rel="icon" href="icons/icon-192.png" type="image/png" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Идеи" />
+
     <style>
         * {
             box-sizing: border-box;
@@ -125,6 +137,26 @@
             border-radius: 8px;
         }
 
+        .previews {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+
+        canvas {
+            border-radius: 18px;
+            border: 1px solid #334155;
+            background: #020617;
+            max-width: 100%;
+            height: auto;
+        }
+
+        #iconPreview512 {
+            width: 192px;
+            height: 192px;
+        }
+
         @media (max-width: 700px) {
             button {
                 width: 100%;
@@ -139,6 +171,10 @@
 <body>
     <main class="container">
         <h1>Генератор идей разработки</h1>
+
+        <div class="row">
+            <button id="installApp" class="secondary" hidden>Установить приложение</button>
+        </div>
 
         <div class="card">
             <h2>Фильтры</h2>
@@ -193,6 +229,7 @@
 
         <div class="card">
             <h2>Шаблон промта</h2>
+
             <p class="small">
                 Используй <code>{ideas}</code> — приложение автоматически вставит туда сгенерированные идеи.
                 Ты можешь изменить текст промта и нажать «Сохранить промт».
@@ -216,6 +253,25 @@
                 readonly
                 placeholder="Здесь появится промт. Сначала сгенерируй идеи и нажми «Собрать промт»."
             ></textarea>
+        </div>
+
+        <div class="card">
+            <h2>Иконки для установки</h2>
+
+            <p class="small">
+                Скачай <code>icon-192.png</code> и <code>icon-512.png</code>.
+                Затем загрузи их в папку <code>icons/</code> в твоём репозитории GitHub.
+            </p>
+
+            <div class="row">
+                <button id="downloadIcon192" class="secondary">Скачать icon-192.png</button>
+                <button id="downloadIcon512" class="secondary">Скачать icon-512.png</button>
+            </div>
+
+            <div class="previews">
+                <canvas id="iconPreview192" width="192" height="192"></canvas>
+                <canvas id="iconPreview512" width="512" height="512"></canvas>
+            </div>
         </div>
     </main>
 
@@ -752,6 +808,25 @@
 
         const STORAGE_KEY = "ideaGeneratorPromptTemplate";
 
+        let deferredInstallPrompt = null;
+
+        window.addEventListener("beforeinstallprompt", (event) => {
+            event.preventDefault();
+            deferredInstallPrompt = event;
+
+            const installButton = document.getElementById("installApp");
+            if (installButton) {
+                installButton.hidden = false;
+            }
+        });
+
+        window.addEventListener("appinstalled", () => {
+            const installButton = document.getElementById("installApp");
+            if (installButton) {
+                installButton.hidden = true;
+            }
+        });
+
         function $(id) {
             return document.getElementById(id);
         }
@@ -953,7 +1028,7 @@
             link.download = filename;
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
+            link.remove();
 
             URL.revokeObjectURL(url);
             showStatus(`Файл ${filename} скачивается`);
@@ -980,9 +1055,129 @@
             showStatus("Промт сброшен");
         }
 
+        function roundedRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function drawAppIcon(canvas, size) {
+            canvas.width = size;
+            canvas.height = size;
+
+            const ctx = canvas.getContext("2d");
+
+            roundedRect(ctx, 0, 0, size, size, size * 0.1875);
+            ctx.fillStyle = "#2563eb";
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size * 0.293, 0, Math.PI * 2);
+            ctx.fillStyle = "#0f172a";
+            ctx.fill();
+
+            ctx.fillStyle = "#e5e7eb";
+            ctx.font = `bold ${Math.floor(size * 0.35)}px Arial, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("И", size / 2, size / 2 + size * 0.03);
+        }
+
+        function downloadAppIcon(size, filename) {
+            const canvas = document.createElement("canvas");
+            drawAppIcon(canvas, size);
+
+            canvas.toBlob(function (blob) {
+                if (!blob) {
+                    showStatus("Не удалось создать PNG");
+                    return;
+                }
+
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = filename;
+
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                }, 1000);
+
+                showStatus(`Файл ${filename} скачивается`);
+            }, "image/png");
+        }
+
+        function drawIconPreviews() {
+            const preview192 = $("iconPreview192");
+            const preview512 = $("iconPreview512");
+
+            if (preview192) {
+                drawAppIcon(preview192, 192);
+            }
+
+            if (preview512) {
+                drawAppIcon(preview512, 512);
+            }
+        }
+
+        function initInstallButton() {
+            const installButton = $("installApp");
+
+            if (!installButton) {
+                return;
+            }
+
+            if (deferredInstallPrompt) {
+                installButton.hidden = false;
+            }
+
+            installButton.addEventListener("click", async () => {
+                if (!deferredInstallPrompt) {
+                    showStatus("Установка доступна через меню браузера");
+                    return;
+                }
+
+                deferredInstallPrompt.prompt();
+
+                const choice = await deferredInstallPrompt.userChoice;
+
+                if (choice.outcome === "accepted") {
+                    showStatus("Установка начата");
+                }
+
+                deferredInstallPrompt = null;
+                installButton.hidden = true;
+            });
+        }
+
+        function registerServiceWorker() {
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker
+                    .register("sw.js")
+                    .catch((error) => {
+                        console.error("Ошибка service worker:", error);
+                    });
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             populateSpecializationSelect();
             loadPromptTemplate();
+            drawIconPreviews();
+            initInstallButton();
+            registerServiceWorker();
 
             $("generate").addEventListener("click", () => {
                 handleGenerate();
@@ -1009,6 +1204,14 @@
 
             $("savePrompt").addEventListener("click", savePromptTemplate);
             $("resetPrompt").addEventListener("click", resetPromptTemplate);
+
+            $("downloadIcon192").addEventListener("click", () => {
+                downloadAppIcon(192, "icon-192.png");
+            });
+
+            $("downloadIcon512").addEventListener("click", () => {
+                downloadAppIcon(512, "icon-512.png");
+            });
 
             handleGenerate();
             handleBuildPrompt();
