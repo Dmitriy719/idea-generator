@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Генератор идей</title>
+    <title>Генератор идей разработки</title>
     <style>
         * {
             box-sizing: border-box;
@@ -17,7 +17,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
             padding: 16px;
         }
@@ -48,7 +48,16 @@
             margin-bottom: 10px;
         }
 
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 220px;
+            flex: 1;
+        }
+
         input,
+        select,
         textarea,
         pre {
             width: 100%;
@@ -60,8 +69,9 @@
             font-size: 15px;
         }
 
-        input {
-            max-width: 180px;
+        input,
+        select {
+            min-height: 46px;
         }
 
         textarea {
@@ -71,7 +81,7 @@
         }
 
         pre {
-            min-height: 240px;
+            min-height: 260px;
             white-space: pre-wrap;
             line-height: 1.5;
             margin: 0;
@@ -85,6 +95,7 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
+            min-height: 46px;
         }
 
         button.secondary {
@@ -119,29 +130,64 @@
                 width: 100%;
             }
 
-            input {
-                max-width: 100%;
+            .field {
+                min-width: 100%;
             }
         }
     </style>
 </head>
 <body>
     <main class="container">
-        <h1>Генератор идей</h1>
+        <h1>Генератор идей разработки</h1>
 
         <div class="card">
+            <h2>Фильтры</h2>
+
             <div class="row">
-                <label for="count">Сколько идей:</label>
-                <input id="count" type="number" min="1" max="100" value="10" />
+                <div class="field">
+                    <label for="count">Сколько идей</label>
+                    <input id="count" type="number" min="1" max="100" value="10" />
+                </div>
+
+                <div class="field">
+                    <label for="device">Категория разработки</label>
+                    <select id="device">
+                        <option value="any">Любая</option>
+                        <option value="smartphone">Разработка на смартфоне</option>
+                        <option value="computer">Разработка на компьютере</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="difficulty">Уровень сложности</label>
+                    <select id="difficulty">
+                        <option value="any">Любая</option>
+                        <option value="easy">Лёгкий</option>
+                        <option value="medium">Средний</option>
+                        <option value="hard">Сложный</option>
+                        <option value="advanced">Продвинутый</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="specialization">Специализация разработки</label>
+                    <select id="specialization">
+                        <option value="any">Любая</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
                 <button id="generate">Сгенерировать идеи</button>
                 <button id="copyIdeas" class="secondary">Копировать идеи</button>
                 <button id="downloadIdeas" class="secondary">Скачать идеи</button>
             </div>
+
             <div class="status" id="status"></div>
         </div>
 
         <div class="card">
-            <h2>Идеи</h2>
+            <h2>Идеи проектов</h2>
             <pre id="ideasOutput"></pre>
         </div>
 
@@ -151,6 +197,7 @@
                 Используй <code>{ideas}</code> — приложение автоматически вставит туда сгенерированные идеи.
                 Ты можешь изменить текст промта и нажать «Сохранить промт».
             </p>
+
             <textarea id="promptTemplate"></textarea>
 
             <div class="row" style="margin-top: 10px;">
@@ -173,116 +220,535 @@
     </main>
 
     <script>
-        const DEFAULT_PROMPT = `Ты — продуктовый стратег для соло-разработчика.
+        const DEFAULT_PROMPT = `Ты — продуктовый стратег для разработчика.
 
-Ограничения:
-- разработка идёт на смартфоне и в UserLAnd;
-- лучше использовать Python, Telegram Bot API, Google Sheets, SQLite, простые веб-формы;
-- MVP должен быть возможен за 1-2 недели;
-- не предлагай сложные мобильные приложения, большие SaaS, игры и проекты с тяжёлой инфраструктурой.
+Ниже даны идеи проектов. У каждой идеи указаны:
+- категория: разработка на смартфоне или разработка на компьютере;
+- уровень сложности: лёгкий, средний, сложный или продвинутый;
+- специализация разработки;
+- клиент;
+- боль клиента;
+- решение;
+- стек;
+- усложнения;
+- монетизация.
 
-Ниже список черновых идей. Выбери 5 самых выгодных и для каждой напиши:
-
-1. Клиент.
-2. Боль клиента.
-3. Какую пользу получит клиент.
-4. Какой минимальный MVP.
-5. Как найти первого клиента.
-6. За что именно клиент заплатит.
-7. Основные риски.
+Твоя задача:
+1. Выбери 5 самых выгодных идей.
+2. Для каждой идеи объясни, почему она может принести пользу и прибыль.
+3. Укажи, каким клиентам её предлагать.
+4. Опиши минимальный MVP.
+5. Опиши, как усложнить проект, чтобы сделать более ценный продукт.
+6. Укажи основные риски.
+7. Дай рекомендации: какой проект лучше начать первым.
 
 Список идей:
 
 {ideas}`;
 
-        const CLIENTS = {
-            "локальные услуги": [
-                "салоны красоты",
-                "автосервисы",
-                "шиномонтаж",
-                "клининг",
-                "ремонт квартир",
-                "ремонт телефонов",
-                "ветклиники",
-                "фотостудии"
-            ],
-            "торговля": [
-                "интернет-магазины",
-                "селлеры маркетплейсов",
-                "кафе и доставка еды",
-                "небольшие магазины",
-                "оптовики"
-            ],
-            "эксперты": [
-                "репетиторы",
-                "психологи",
-                "бухгалтеры",
-                "маркетологи",
-                "коучи",
-                "онлайн-школы"
-            ],
-            "операционные команды": [
-                "логисты",
-                "склады",
-                "управляющие компании",
-                "клининговые компании",
-                "охранные компании"
-            ]
+        const DEVICE_LABELS = {
+            smartphone: "Разработка на смартфоне",
+            computer: "Разработка на компьютере"
         };
 
-        const PAINS = [
-            "заявки теряются в мессенджерах",
-            "много ручного ввода в таблицы",
-            "нет напоминаний клиентам",
-            "отчёты собираются вручную",
-            "не видна прибыль по заказам",
-            "клиенты не получают быстрый ответ",
-            "нет базы клиентов для повторных продаж",
-            "сотрудники забывают чек-листы",
-            "сложно контролировать статусы работ",
-            "много однотипных вопросов от клиентов"
-        ];
+        const DIFFICULTY_LABELS = {
+            easy: "Лёгкий",
+            medium: "Средний",
+            hard: "Сложный",
+            advanced: "Продвинутый"
+        };
 
-        const SOLUTIONS = [
-            "Telegram-бот приёма заявок + Google Sheets",
-            "автоотчёт в Telegram по данным из таблицы",
-            "веб-форма записи/заявки с уведомлениями",
-            "скрипт сверки данных и алерты",
-            "мини-CRM: статусы, комментарии, напоминания",
-            "генератор документов/смет/КП из шаблона",
-            "бот FAQ и сбор отзывов",
-            "бот напоминаний и повторных продаж",
-            "журнал задач для сотрудников в Telegram",
-            "автоматический перенос данных в таблицу"
-        ];
+        const SPECIALIZATION_LABELS = {
+            automation: "Автоматизация бизнеса",
+            bots: "Telegram и чат-боты",
+            web: "Веб-приложения",
+            backend: "Backend и API",
+            data: "Данные и аналитика",
+            parsing: "Парсинг и мониторинг",
+            ai: "AI-интеграции",
+            mobile: "Мобильные приложения",
+            games: "Игры",
+            devops: "DevOps и инфраструктура",
+            security: "Кибербезопасность",
+            fullstack: "Fullstack SaaS"
+        };
 
-        const BENEFITS = [
-            "меньше потерянных заявок",
-            "экономия 5–15 часов в неделю",
-            "быстрее ответ клиенту",
-            "больше повторных продаж",
-            "меньше ошибок в учёте",
-            "руководитель видит цифры без ручных отчётов",
-            "меньше нагрузки на администратора",
-            "контроль сотрудников без сложных систем"
-        ];
-
-        const OFFERS = [
+        const MONETIZATION = [
             "разовая разработка + поддержка",
-            "подписка за бота/отчёт",
-            "пилот за символическую оплату за отзыв",
+            "подписка за сервис или отчёты",
+            "внедрение + обучение",
             "коробочное решение + настройка",
-            "внедрение + обучение"
+            "пилот за отзыв + дальнейшая поддержка",
+            "лицензия для нескольких клиентов"
         ];
 
         const CHANNELS = [
             "написать 20 компаниям напрямую",
-            "предложить партнёру: маркетологу или бухгалтеру",
+            "предложить партнёру: маркетологу, бухгалтеру или агентству",
             "разместить кейс в профильном чате",
             "сделать демо и показать локальному бизнесу",
             "опубликовать мини-инструкцию с примером решения",
             "спросить в чате предпринимателей про боль"
         ];
+
+        const DIFFICULTY_TASKS = {
+            easy: [
+                "Сделать только одну основную функцию",
+                "Подключить уведомления в Telegram",
+                "Добавить простую инструкцию для клиента",
+                "Сохранять данные в файл или SQLite",
+                "Сделать простой тестовый сценарий"
+            ],
+            medium: [
+                "Добавить простую админку",
+                "Подключить базу данных",
+                "Сделать логирование",
+                "Добавить экспорт в CSV/XLSX",
+                "Сделать резервное копирование",
+                "Добавить настройку через файл или панель"
+            ],
+            hard: [
+                "Добавить роли пользователей",
+                "Сделать фоновые задачи",
+                "Добавить тесты",
+                "Настроить Docker",
+                "Сделать аудит действий",
+                "Подключить лимиты или платёжный сервис",
+                "Сделать историю изменений"
+            ],
+            advanced: [
+                "Спроектировать масштабируемую архитектуру",
+                "Разделить систему на модули или сервисы",
+                "Настроить CI/CD",
+                "Добавить мониторинг и алерты",
+                "Провести нагрузочное тестирование",
+                "Добавить безопасность: rate limit, шифрование, аудит",
+                "Сделать панель аналитики для клиента",
+                "Подготовить документацию API"
+            ]
+        };
+
+        const PROJECT_BASES = {
+            automation: {
+                smartphone: [
+                    {
+                        title: "Telegram-диспетчер заявок",
+                        client: "локальные услуги: салоны, автосервисы, ремонт",
+                        pain: "заявки теряются в мессенджерах и блокнотах",
+                        solution: "бот принимает заявку, сохраняет в SQLite/Google Sheets и уведомляет владельца",
+                        stack: "Python, aiogram, SQLite, Google Sheets API"
+                    },
+                    {
+                        title: "Автоотчёты для малого бизнеса",
+                        client: "кафе, магазины, менеджеры маркетплейсов",
+                        pain: "владелец тратит время на ручные отчёты",
+                        solution: "скрипт собирает данные из таблиц и отправляет утренний отчёт в Telegram",
+                        stack: "Python, pandas/openpyxl, cron, Telegram Bot API"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "Портал согласования заявок",
+                        client: "малые компании и отделы",
+                        pain: "согласования идут в чатах и почте",
+                        solution: "веб-система с ролями, статусами, историей и уведомлениями",
+                        stack: "FastAPI, PostgreSQL, Docker, HTML/CSS/JS"
+                    },
+                    {
+                        title: "Система контроля полевых сотрудников",
+                        client: "клининг, ЖКХ, сервисные бригады",
+                        pain: "нет контроля выполнения задач",
+                        solution: "кабинет менеджера, мобильная веб-версия для сотрудника, фотоотчёты",
+                        stack: "Node.js/Express или FastAPI, PostgreSQL, файловое хранилище"
+                    }
+                ]
+            },
+
+            bots: {
+                smartphone: [
+                    {
+                        title: "FAQ-бот и сбор отзывов",
+                        client: "салоны, кафе, клиники",
+                        pain: "администратор отвечает на одни и те же вопросы",
+                        solution: "бот отвечает на частые вопросы и собирает отзывы",
+                        stack: "Python, aiogram, SQLite"
+                    },
+                    {
+                        title: "Бот напоминаний и повторных продаж",
+                        client: "репетиторы, мастера, фитнес",
+                        pain: "клиенты не возвращаются",
+                        solution: "бот хранит клиентов и шлёт напоминания или акции",
+                        stack: "Python, SQLite, Telegram Bot API"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "Мультиканальный бот-центр",
+                        client: "интернет-магазины, онлайн-школы",
+                        pain: "заявки приходят из разных каналов",
+                        solution: "единый кабинет для Telegram, почты, веб-чата и других каналов",
+                        stack: "Node.js, PostgreSQL, Redis, REST API"
+                    },
+                    {
+                        title: "Бот с оплатой и личным кабинетом",
+                        client: "курсы, клубы, сервисы подписки",
+                        pain: "ручной приём оплат и доступов",
+                        solution: "бот принимает оплату, выдаёт доступ и ведёт подписку",
+                        stack: "FastAPI, PostgreSQL, платёжный API, Docker"
+                    }
+                ]
+            },
+
+            web: {
+                smartphone: [
+                    {
+                        title: "Квиз-лендинг с заявками",
+                        client: "локальный бизнес и услуги",
+                        pain: "нужен простой поток заявок",
+                        solution: "одностраничный квиз, отправка заявок в Telegram или таблицу",
+                        stack: "HTML, CSS, JavaScript, Fetch API"
+                    },
+                    {
+                        title: "PWA-форма записи",
+                        client: "мастера и эксперты",
+                        pain: "записи ведутся вручную",
+                        solution: "мобильная веб-форма записи с сохранением данных",
+                        stack: "HTML/CSS/JS, Python/Flask или статика + Google Sheets"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "Мини-CRM с ролями",
+                        client: "малые команды и отделы продаж",
+                        pain: "сделки ведутся в таблицах и теряются",
+                        solution: "веб-CRM: сделки, задачи, напоминания, права доступа",
+                        stack: "React/Vue, FastAPI/Node.js, PostgreSQL"
+                    },
+                    {
+                        title: "Клиентский портал заявок",
+                        client: "сервисные компании",
+                        pain: "клиент не видит статус заявки",
+                        solution: "портал с авторизацией, статусами, историей и уведомлениями",
+                        stack: "Next.js, Node.js/FastAPI, PostgreSQL"
+                    }
+                ]
+            },
+
+            backend: {
+                smartphone: [
+                    {
+                        title: "Локальный API для бота и таблицы",
+                        client: "разработчики и малый бизнес",
+                        pain: "данные разбросаны между скриптами",
+                        solution: "небольшой REST API для учёта заявок и настроек",
+                        stack: "Python, FastAPI, SQLite"
+                    },
+                    {
+                        title: "Webhook-приёмщик лидов",
+                        client: "маркетологи и лендинги",
+                        pain: "заявки теряются между сервисами",
+                        solution: "endpoint принимает POST, сохраняет заявку и шлёт уведомление",
+                        stack: "Python, Flask/FastAPI, SQLite"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "REST API с авторизацией и тарифами",
+                        client: "стартапы и B2B-сервисы",
+                        pain: "нужна интеграция для клиентов",
+                        solution: "API с JWT, ролями, лимитами и журналом запросов",
+                        stack: "FastAPI, PostgreSQL, Redis, Docker"
+                    },
+                    {
+                        title: "Сервис фоновых задач",
+                        client: "проекты с долгой обработкой",
+                        pain: "тяжёлые операции тормозят сайт",
+                        solution: "очереди, воркеры, повторные попытки и статусы задач",
+                        stack: "Python, Celery/RQ, Redis, PostgreSQL"
+                    }
+                ]
+            },
+
+            data: {
+                smartphone: [
+                    {
+                        title: "Скрипт очистки и сводки данных",
+                        client: "менеджеры и аналитики",
+                        pain: "данные приходят грязными и вручную сводятся",
+                        solution: "скрипт нормализует CSV/XLSX и считает сводку",
+                        stack: "Python, pandas, openpyxl"
+                    },
+                    {
+                        title: "Текстовый дашборд в Telegram",
+                        client: "владельцы малого бизнеса",
+                        pain: "нет быстрых показателей",
+                        solution: "бот присылает ключевые метрики и отклонения",
+                        stack: "Python, SQLite, Telegram Bot API"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "Аналитический дашборд с БД",
+                        client: "магазины, кафе, сервисы",
+                        pain: "сложно видеть продажи и прибыль",
+                        solution: "панель с графиками, фильтрами и выгрузками",
+                        stack: "Python Dash/Streamlit или Metabase, PostgreSQL"
+                    },
+                    {
+                        title: "ETL-конвейер отчётов",
+                        client: "компании с несколькими источниками",
+                        pain: "отчёты собираются из разных систем вручную",
+                        solution: "автоматическая загрузка, преобразование и обновление витрины данных",
+                        stack: "Python, Airflow/Prefect, PostgreSQL, Docker"
+                    }
+                ]
+            },
+
+            parsing: {
+                smartphone: [
+                    {
+                        title: "Мониторинг изменений на странице",
+                        client: "магазины и закупщики",
+                        pain: "нужно вручную проверять изменения",
+                        solution: "скрипт проверяет страницу и присылает алерт",
+                        stack: "Python, requests, BeautifulSoup, cron"
+                    },
+                    {
+                        title: "Сбор отзывов и упоминаний",
+                        client: "бренды и эксперты",
+                        pain: "не видно отзывы на площадках",
+                        solution: "скрипт собирает доступные отзывы и рейтинги в таблицу",
+                        stack: "Python, requests, SQLite"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "Система мониторинга цен конкурентов",
+                        client: "e-commerce и селлеры",
+                        pain: "цены меняются, а реакция медленная",
+                        solution: "планировщик, прокси, алерты, кабинет с историей",
+                        stack: "FastAPI, PostgreSQL, Redis, Docker"
+                    },
+                    {
+                        title: "Мониторинг маркетплейсов",
+                        client: "селлеры и агентства",
+                        pain: "остатки, отзывы и позиции не контролируются",
+                        solution: "интеграции по API, отчёты, уведомления",
+                        stack: "Python, PostgreSQL, очереди, Docker"
+                    }
+                ]
+            },
+
+            ai: {
+                smartphone: [
+                    {
+                        title: "Промт-помощник для ответов клиентам",
+                        client: "поддержка и администраторы",
+                        pain: "долго отвечать на однотипные сообщения",
+                        solution: "веб-страница генерирует черновики ответов через AI API",
+                        stack: "HTML/JS, fetch, AI API"
+                    },
+                    {
+                        title: "Суммаризация отзывов",
+                        client: "селлеры и кафе",
+                        pain: "много отзывов, сложно выделить главное",
+                        solution: "скрипт передаёт отзывы в AI API и возвращает выводы",
+                        stack: "Python, AI API, SQLite"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "AI-ассистент с базой знаний",
+                        client: "поддержка и обучение",
+                        pain: "сотрудники ищут ответы вручную",
+                        solution: "RAG: загрузка документов, поиск, ответы с источниками",
+                        stack: "FastAPI, PostgreSQL, pgvector, LLM API"
+                    },
+                    {
+                        title: "Генератор документов и КП",
+                        client: "B2B, агентства, юристы",
+                        pain: "долго готовить документы",
+                        solution: "шаблоны, роли, генерация PDF/DOCX, история",
+                        stack: "Next.js, FastAPI, PostgreSQL, LLM API"
+                    }
+                ]
+            },
+
+            mobile: {
+                smartphone: [
+                    {
+                        title: "PWA-каталог с заявками",
+                        client: "малый бизнес",
+                        pain: "нет удобной мобильной витрины",
+                        solution: "каталог товаров или услуг, корзина/заявка, offline-кэш",
+                        stack: "HTML/CSS/JS, Service Worker"
+                    },
+                    {
+                        title: "Telegram Mini App для записи",
+                        client: "салоны, репетиторы, сервисы",
+                        pain: "обычный бот неудобен для выбора времени",
+                        solution: "мини-приложение внутри Telegram с формой и календарём",
+                        stack: "HTML/JS, Telegram WebApp API, FastAPI/Flask"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "Мобильное приложение для клиентов",
+                        client: "клиники, фитнес, доставка",
+                        pain: "клиентам неудобно записываться и получать статусы",
+                        solution: "кроссплатформенное приложение с push и личным кабинетом",
+                        stack: "Flutter/React Native, Firebase/PostgreSQL"
+                    },
+                    {
+                        title: "Полевое приложение для сотрудников",
+                        client: "логистика, сервис, строительство",
+                        pain: "бумажные акты и фотоотчёты",
+                        solution: "офлайн-формы, фото, синхронизация, задания",
+                        stack: "React Native, SQLite/Realm, REST API"
+                    }
+                ]
+            },
+
+            games: {
+                smartphone: [
+                    {
+                        title: "Браузерная викторина для лидов",
+                        client: "эксперты и сообщества",
+                        pain: "низкая вовлечённость",
+                        solution: "HTML-игра с вопросами и сбором контактов",
+                        stack: "HTML/CSS/JS"
+                    },
+                    {
+                        title: "Текстовый бизнес-квест",
+                        client: "образование и инфопродукты",
+                        pain: "скучная подача материала",
+                        solution: "интерактивный сценарий с выборами и очками",
+                        stack: "JavaScript, localStorage"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "2D-игра с прогрессией и лидербордом",
+                        client: "образовательные проекты и сообщества",
+                        pain: "нужно удержание",
+                        solution: "игра с уровнями, достижениями и таблицей лидеров",
+                        stack: "Phaser/Godot, Node.js, PostgreSQL"
+                    },
+                    {
+                        title: "Многопользовательская мини-игра",
+                        client: "стримы, сообщества, мероприятия",
+                        pain: "нужна активность аудитории",
+                        solution: "комнаты, real-time события, рейтинги",
+                        stack: "Node.js, WebSockets, Redis, PostgreSQL"
+                    }
+                ]
+            },
+
+            devops: {
+                smartphone: [
+                    {
+                        title: "Скрипт резервного копирования",
+                        client: "фрилансеры и малые команды",
+                        pain: "нет бэкапов данных",
+                        solution: "скрипт архивирует файлы или БД и отправляет в облако/папку",
+                        stack: "Bash/Python, cron"
+                    },
+                    {
+                        title: "Автодеплой статичного сайта",
+                        client: "разработчики и малый бизнес",
+                        pain: "ручная выгрузка файлов",
+                        solution: "скрипт собирает и публикует сайт через Git/API",
+                        stack: "Bash/Python, GitHub API"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "CI/CD для веб-проекта",
+                        client: "команды разработки",
+                        pain: "релизы вручную и с ошибками",
+                        solution: "автоматические тесты, сборка, деплой, откат",
+                        stack: "GitHub Actions, Docker, VPS"
+                    },
+                    {
+                        title: "Мониторинг серверов и алерты",
+                        client: "стартапы и интернет-проекты",
+                        pain: "проблемы замечают поздно",
+                        solution: "метрики, алерты в Telegram, дашборд",
+                        stack: "Prometheus, Grafana, Node Exporter, Telegram Bot API"
+                    }
+                ]
+            },
+
+            security: {
+                smartphone: [
+                    {
+                        title: "Аудит доступов и паролей",
+                        client: "малый бизнес",
+                        pain: "пароли хранятся в чатах и таблицах",
+                        solution: "чек-лист, скрипт проверки, рекомендации",
+                        stack: "Python, чек-листы, базовая криптография"
+                    },
+                    {
+                        title: "Локальный шифратор заметок",
+                        client: "эксперты и консультанты",
+                        pain: "чувствительные данные в открытом виде",
+                        solution: "CLI/веб-утилита шифрует файлы или заметки",
+                        stack: "Python, cryptography"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "Система управления доступами",
+                        client: "компании и команды",
+                        pain: "общие аккаунты и утечки",
+                        solution: "роли, журнал действий, безопасное хранение секретов",
+                        stack: "PostgreSQL, Vault/собственное хранилище, Docker"
+                    },
+                    {
+                        title: "Аудит и защита веб-приложения",
+                        client: "стартапы и магазины",
+                        pain: "уязвимости и спам",
+                        solution: "проверка OWASP, rate limit, заголовки, логирование",
+                        stack: "OWASP ZAP, Nginx, FastAPI/Node.js"
+                    }
+                ]
+            },
+
+            fullstack: {
+                smartphone: [
+                    {
+                        title: "Мини-SaaS на Telegram и таблице",
+                        client: "узкая ниша: запись, учёт, заявки",
+                        pain: "нет дешевого отраслевого решения",
+                        solution: "бот + веб-админка + таблица/SQLite",
+                        stack: "Python, aiogram, FastAPI, SQLite"
+                    },
+                    {
+                        title: "MVP для проверки бизнес-гипотезы",
+                        client: "предприниматели",
+                        pain: "нужно быстро проверить спрос",
+                        solution: "лендинг, форма, бот, аналитика заявок",
+                        stack: "HTML/JS, Python, Telegram Bot API"
+                    }
+                ],
+                computer: [
+                    {
+                        title: "Нишевый SaaS с подпиской",
+                        client: "салоны, ремонт, логистика, образование",
+                        pain: "ручное управление процессами",
+                        solution: "мультиарендность, роли, тарифы, оплата, аналитика",
+                        stack: "Next.js, FastAPI/Node.js, PostgreSQL, платёжный сервис"
+                    },
+                    {
+                        title: "B2B-платформа с API-кабинетами",
+                        client: "агентства, интеграторы, франшизы",
+                        pain: "клиентам нужен доступ к данным и интеграциям",
+                        solution: "личные кабинеты, API-ключи, лимиты, биллинг",
+                        stack: "React, FastAPI, PostgreSQL, Redis, Docker"
+                    }
+                ]
+            }
+        };
 
         const STORAGE_KEY = "ideaGeneratorPromptTemplate";
 
@@ -294,26 +760,101 @@
             return array[Math.floor(Math.random() * array.length)];
         }
 
+        function chooseSome(array, count) {
+            const copy = [...array];
+            const result = [];
+
+            while (copy.length > 0 && result.length < count) {
+                const index = Math.floor(Math.random() * copy.length);
+                result.push(copy.splice(index, 1)[0]);
+            }
+
+            return result;
+        }
+
+        function populateSpecializationSelect() {
+            const select = $("specialization");
+
+            Object.entries(SPECIALIZATION_LABELS).forEach(([value, label]) => {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+        }
+
         function generateIdeas(count) {
-            const segments = Object.keys(CLIENTS);
+            const deviceFilter = $("device").value;
+            const difficultyFilter = $("difficulty").value;
+            const specializationFilter = $("specialization").value;
+
             const lines = [];
 
             for (let i = 1; i <= count; i++) {
-                const segment = randomItem(segments);
-                const client = randomItem(CLIENTS[segment]);
-                const pain = randomItem(PAINS);
-                const solution = randomItem(SOLUTIONS);
-                const benefit = randomItem(BENEFITS);
-                const offer = randomItem(OFFERS);
+                const device =
+                    deviceFilter === "any"
+                        ? randomItem(["smartphone", "computer"])
+                        : deviceFilter;
+
+                const difficulty =
+                    difficultyFilter === "any"
+                        ? randomItem(["easy", "medium", "hard", "advanced"])
+                        : difficultyFilter;
+
+                const specialization =
+                    specializationFilter === "any"
+                        ? randomItem(Object.keys(PROJECT_BASES))
+                        : specializationFilter;
+
+                let actualDevice = device;
+                let baseList = PROJECT_BASES[specialization]?.[actualDevice] || [];
+
+                if (baseList.length === 0) {
+                    actualDevice = actualDevice === "smartphone" ? "computer" : "smartphone";
+                    baseList = PROJECT_BASES[specialization]?.[actualDevice] || [];
+                }
+
+                if (baseList.length === 0) {
+                    baseList = PROJECT_BASES.automation.smartphone;
+                    actualDevice = "smartphone";
+                }
+
+                const base = randomItem(baseList);
+
+                const complexityCount =
+                    difficulty === "easy"
+                        ? 2
+                        : difficulty === "medium"
+                        ? 3
+                        : difficulty === "hard"
+                        ? 4
+                        : 5;
+
+                const complexityItems = chooseSome(
+                    DIFFICULTY_TASKS[difficulty],
+                    complexityCount
+                );
+
+                const monetization = randomItem(MONETIZATION);
                 const channel = randomItem(CHANNELS);
 
-                lines.push(`${i}. Клиент: ${client}
-   Сегмент: ${segment}
-   Боль: ${pain}
-   Решение: ${solution}
-   Польза: ${benefit}
-   Продажа: ${offer}
-   Канал привлечения: ${channel}`);
+                let note = "";
+
+                if (actualDevice === "smartphone" && (difficulty === "hard" || difficulty === "advanced")) {
+                    note = "Примечание: для части сложных задач может понадобиться VPS, компьютер или облако.";
+                }
+
+                lines.push(`${i}. Проект: ${base.title}
+   Категория: ${DEVICE_LABELS[actualDevice]}
+   Уровень сложности: ${DIFFICULTY_LABELS[difficulty]}
+   Специализация: ${SPECIALIZATION_LABELS[specialization]}
+   Клиент: ${base.client}
+   Боль клиента: ${base.pain}
+   Решение: ${base.solution}
+   Стек: ${base.stack}
+   Усложнения: ${complexityItems.join("; ")}
+   Монетизация: ${monetization}
+   Как предлагать: ${channel}${note ? `\n   ${note}` : ""}`);
             }
 
             return lines.join("\n\n");
@@ -440,6 +981,7 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
+            populateSpecializationSelect();
             loadPromptTemplate();
 
             $("generate").addEventListener("click", () => {
@@ -468,10 +1010,9 @@
             $("savePrompt").addEventListener("click", savePromptTemplate);
             $("resetPrompt").addEventListener("click", resetPromptTemplate);
 
-            // При первом запуске сразу генерируем идеи и промт
             handleGenerate();
             handleBuildPrompt();
         });
     </script>
 </body>
-              </html>
+    </html>
