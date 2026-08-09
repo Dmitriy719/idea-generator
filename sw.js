@@ -3,14 +3,19 @@ const CACHE_NAME = "idea-generator-cache-v1";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
-  "./manifest.webmanifest",
-  "./icon.svg"
+  "./manifest.webmanifest"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.all(
+        ASSETS_TO_CACHE.map((url) => {
+          return cache.add(url).catch((error) => {
+            console.warn(`Не удалось закэшировать: ${url}`, error);
+          });
+        })
+      );
     })
   );
 
