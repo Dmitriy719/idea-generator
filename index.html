@@ -17,6 +17,31 @@
     <meta name="apple-mobile-web-app-title" content="Идеи" />
 
     <style>
+        :root {
+            --bg: #0f172a;
+            --card: #111827;
+            --border: #1f2937;
+            --text: #e5e7eb;
+            --muted: #94a3b8;
+            --input: #020617;
+            --input-border: #334155;
+            --accent: #2563eb;
+            --secondary: #334155;
+            --ok: #86efac;
+        }
+
+        body.light {
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --input: #ffffff;
+            --input-border: #cbd5e1;
+            --secondary: #e2e8f0;
+            --ok: #16a34a;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -24,8 +49,8 @@
         body {
             margin: 0;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #0f172a;
-            color: #e5e7eb;
+            background: var(--bg);
+            color: var(--text);
         }
 
         .container {
@@ -44,9 +69,14 @@
             margin: 24px 0 10px;
         }
 
+        h3 {
+            font-size: 17px;
+            margin: 0 0 8px;
+        }
+
         .card {
-            background: #111827;
-            border: 1px solid #1f2937;
+            background: var(--card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 16px;
@@ -73,9 +103,9 @@
         textarea,
         pre {
             width: 100%;
-            background: #020617;
-            color: #e5e7eb;
-            border: 1px solid #334155;
+            background: var(--input);
+            color: var(--text);
+            border: 1px solid var(--input-border);
             border-radius: 12px;
             padding: 10px;
             font-size: 15px;
@@ -87,23 +117,16 @@
         }
 
         textarea {
-            min-height: 220px;
+            min-height: 180px;
             resize: vertical;
             line-height: 1.5;
-        }
-
-        pre {
-            min-height: 260px;
-            white-space: pre-wrap;
-            line-height: 1.5;
-            margin: 0;
         }
 
         button {
             border: 0;
             border-radius: 12px;
             padding: 10px 12px;
-            background: #2563eb;
+            background: var(--accent);
             color: white;
             font-weight: 600;
             cursor: pointer;
@@ -111,7 +134,11 @@
         }
 
         button.secondary {
-            background: #334155;
+            background: var(--secondary);
+        }
+
+        body.light button.secondary {
+            color: #0f172a;
         }
 
         button:active {
@@ -120,19 +147,20 @@
 
         .status {
             min-height: 24px;
-            color: #86efac;
+            color: var(--ok);
             margin-top: 10px;
             font-weight: 600;
         }
 
         .small {
-            color: #94a3b8;
+            color: var(--muted);
             font-size: 14px;
             line-height: 1.5;
+            margin: 4px 0;
         }
 
         code {
-            background: #020617;
+            background: var(--input);
             padding: 2px 6px;
             border-radius: 8px;
         }
@@ -146,8 +174,8 @@
 
         canvas {
             border-radius: 18px;
-            border: 1px solid #334155;
-            background: #020617;
+            border: 1px solid var(--input-border);
+            background: var(--input);
             max-width: 100%;
             height: auto;
         }
@@ -155,6 +183,55 @@
         #iconPreview512 {
             width: 192px;
             height: 192px;
+        }
+
+        .idea-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            background: var(--card);
+        }
+
+        .saved-item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .rate-panel {
+            margin-top: 10px;
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+        }
+
+        .rate-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .rate-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rate-item select {
+            min-height: 40px;
+        }
+
+        .rate-result {
+            margin-top: 10px;
+            font-weight: 700;
+            color: var(--ok);
+        }
+
+        @media (min-width: 700px) {
+            .rate-grid {
+                grid-template-columns: 1fr 1fr;
+            }
         }
 
         @media (max-width: 700px) {
@@ -175,6 +252,7 @@
         <div class="row">
             <button id="installApp" class="secondary" hidden>Установить приложение</button>
             <button id="clearCache" class="secondary">Очистить кэш и обновить</button>
+            <button id="themeToggle" class="secondary">☀️ Светлая тема</button>
         </div>
 
         <div class="card">
@@ -183,7 +261,7 @@
             <div class="row">
                 <div class="field">
                     <label for="count">Сколько идей</label>
-                    <input id="count" type="number" min="1" max="100" value="10" />
+                    <input id="count" type="number" min="1" max="50" value="6" />
                 </div>
 
                 <div class="field">
@@ -217,7 +295,8 @@
             <div class="row">
                 <button id="generate">Сгенерировать идеи</button>
                 <button id="copyIdeas" class="secondary">Копировать идеи</button>
-                <button id="downloadIdeas" class="secondary">Скачать идеи</button>
+                <button id="downloadIdeas" class="secondary">Скачать идеи (.txt)</button>
+                <button id="downloadJson" class="secondary">Скачать идеи (.json)</button>
             </div>
 
             <div class="status" id="status"></div>
@@ -225,7 +304,82 @@
 
         <div class="card">
             <h2>Идеи проектов</h2>
-            <pre id="ideasOutput"></pre>
+            <p class="small">
+                ⭐ Сохранить — добавить в избранное. 📊 Оценить — поставить баллы по 6 критериям. 📋 Копировать — скопировать текст идеи.
+            </p>
+            <div id="ideasCards"></div>
+        </div>
+
+        <div class="card">
+            <h2>Сохранённые идеи</h2>
+            <div id="savedList"></div>
+            <div class="row">
+                <button id="exportSaved" class="secondary">Экспорт сохранённых (.json)</button>
+                <button id="clearSaved" class="secondary">Очистить сохранённые</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Коммерческое предложение</h2>
+
+            <div class="row">
+                <div class="field">
+                    <label for="ideaSelect">Идея</label>
+                    <select id="ideaSelect"></select>
+                </div>
+
+                <div class="field">
+                    <label for="kpClient">Имя клиента или компания</label>
+                    <input id="kpClient" type="text" placeholder="Например: Автосервис «Форсаж»" />
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="field">
+                    <label for="kpPrice">Цена</label>
+                    <input id="kpPrice" type="text" placeholder="Например: 15 000 ₽" />
+                </div>
+
+                <div class="field">
+                    <label for="kpTerm">Срок</label>
+                    <input id="kpTerm" type="text" placeholder="Например: 5–7 дней" />
+                </div>
+            </div>
+
+            <div class="row">
+                <button id="buildKp">Сгенерировать КП</button>
+                <button id="copyKp" class="secondary">Копировать КП</button>
+            </div>
+
+            <textarea id="kpOutput" readonly placeholder="Здесь появится коммерческое предложение."></textarea>
+        </div>
+
+        <div class="card">
+            <h2>Сообщения для клиентов</h2>
+
+            <div class="row">
+                <div class="field">
+                    <label for="msgType">Шаблон</label>
+                    <select id="msgType">
+                        <option value="cold">Холодное сообщение</option>
+                        <option value="follow">Напоминание (фоллоу-ап)</option>
+                        <option value="pilot">Предложение пилота</option>
+                        <option value="review">Благодарность + отзыв</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="msgClient">Имя клиента (необязательно)</label>
+                    <input id="msgClient" type="text" placeholder="Например: Иван" />
+                </div>
+            </div>
+
+            <div class="row">
+                <button id="buildMsg">Сгенерировать сообщение</button>
+                <button id="copyMsg" class="secondary">Копировать сообщение</button>
+            </div>
+
+            <textarea id="msgOutput" readonly placeholder="Здесь появится сообщение для клиента."></textarea>
         </div>
 
         <div class="card">
@@ -346,6 +500,15 @@
             "сделать демо и показать локальному бизнесу",
             "опубликовать мини-инструкцию с примером решения",
             "спросить в чате предпринимателей про боль"
+        ];
+
+        const RATE_CRITERIA = [
+            "Боль клиента",
+            "Готовность платить",
+            "Реализуемость",
+            "Доступ к клиентам",
+            "Скорость продажи",
+            "Повторная прибыль"
         ];
 
         const DIFFICULTY_TASKS = {
@@ -808,8 +971,18 @@
         };
 
         const STORAGE_KEY = "ideaGeneratorPromptTemplate";
+        const SAVED_KEY = "ideaGeneratorSavedIdeas";
+        const THEME_KEY = "ideaGeneratorTheme";
 
+        let generatedIdeas = [];
+        let savedIdeas = [];
         let deferredInstallPrompt = null;
+
+        try {
+            savedIdeas = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+        } catch (error) {
+            savedIdeas = [];
+        }
 
         window.addEventListener("beforeinstallprompt", (event) => {
             event.preventDefault();
@@ -830,6 +1003,14 @@
 
         function $(id) {
             return document.getElementById(id);
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
         }
 
         function randomItem(array) {
@@ -864,9 +1045,9 @@
             const difficultyFilter = $("difficulty").value;
             const specializationFilter = $("specialization").value;
 
-            const lines = [];
+            const ideas = [];
 
-            for (let i = 1; i <= count; i++) {
+            for (let i = 0; i < count; i++) {
                 const device =
                     deviceFilter === "any"
                         ? randomItem(["smartphone", "computer"])
@@ -906,34 +1087,189 @@
                         ? 4
                         : 5;
 
-                const complexityItems = chooseSome(
-                    DIFFICULTY_TASKS[difficulty],
-                    complexityCount
-                );
-
-                const monetization = randomItem(MONETIZATION);
-                const channel = randomItem(CHANNELS);
-
                 let note = "";
 
                 if (actualDevice === "smartphone" && (difficulty === "hard" || difficulty === "advanced")) {
                     note = "Примечание: для части сложных задач может понадобиться VPS, компьютер или облако.";
                 }
 
-                lines.push(`${i}. Проект: ${base.title}
-   Категория: ${DEVICE_LABELS[actualDevice]}
-   Уровень сложности: ${DIFFICULTY_LABELS[difficulty]}
-   Специализация: ${SPECIALIZATION_LABELS[specialization]}
-   Клиент: ${base.client}
-   Боль клиента: ${base.pain}
-   Решение: ${base.solution}
-   Стек: ${base.stack}
-   Усложнения: ${complexityItems.join("; ")}
-   Монетизация: ${monetization}
-   Как предлагать: ${channel}${note ? `\n   ${note}` : ""}`);
+                ideas.push({
+                    id: Date.now() + "-" + i + "-" + Math.floor(Math.random() * 100000),
+                    title: base.title,
+                    device: actualDevice,
+                    difficulty: difficulty,
+                    specialization: specialization,
+                    client: base.client,
+                    pain: base.pain,
+                    solution: base.solution,
+                    stack: base.stack,
+                    complexity: chooseSome(DIFFICULTY_TASKS[difficulty], complexityCount),
+                    monetization: randomItem(MONETIZATION),
+                    channel: randomItem(CHANNELS),
+                    note: note,
+                    rating: null
+                });
             }
 
-            return lines.join("\n\n");
+            return ideas;
+        }
+
+        function ideaToText(idea, index) {
+            return `${index}. Проект: ${idea.title}
+   Категория: ${DEVICE_LABELS[idea.device]}
+   Уровень сложности: ${DIFFICULTY_LABELS[idea.difficulty]}
+   Специализация: ${SPECIALIZATION_LABELS[idea.specialization]}
+   Клиент: ${idea.client}
+   Боль клиента: ${idea.pain}
+   Решение: ${idea.solution}
+   Стек: ${idea.stack}
+   Усложнения: ${idea.complexity.join("; ")}
+   Монетизация: ${idea.monetization}
+   Как предлагать: ${idea.channel}${idea.note ? `\n   ${idea.note}` : ""}${idea.rating ? `\n   Оценка: ${idea.rating.total}/30 — ${idea.rating.verdict}` : ""}`;
+        }
+
+        function allIdeasText() {
+            return generatedIdeas
+                .map((idea, i) => ideaToText(idea, i + 1))
+                .join("\n\n");
+        }
+
+        function rateSelectHTML() {
+            return `<select class="rate-select">${[1, 2, 3, 4, 5]
+                .map((v) => `<option value="${v}" ${v === 3 ? "selected" : ""}>${v}</option>`)
+                .join("")}</select>`;
+        }
+
+        function verdictFor(total) {
+            if (total >= 24) return "отличная идея, можно начинать";
+            if (total >= 18) return "хорошая, но нужно усилить";
+            if (total >= 12) return "слабая, лучше доработать";
+            return "не стоит тратить время";
+        }
+
+        function renderIdeas() {
+            const container = $("ideasCards");
+            container.innerHTML = "";
+
+            if (generatedIdeas.length === 0) {
+                container.innerHTML = '<p class="small">Нажми «Сгенерировать идеи», чтобы увидеть проекты.</p>';
+                return;
+            }
+
+            generatedIdeas.forEach((idea, i) => {
+                const card = document.createElement("div");
+                card.className = "idea-card";
+                card.dataset.index = i;
+
+                card.innerHTML = `
+                    <h3>${i + 1}. ${escapeHtml(idea.title)}</h3>
+                    <p class="small">Категория: ${DEVICE_LABELS[idea.device]} · Сложность: ${DIFFICULTY_LABELS[idea.difficulty]} · Специализация: ${SPECIALIZATION_LABELS[idea.specialization]}</p>
+                    <p class="small">Клиент: ${escapeHtml(idea.client)}</p>
+                    <p class="small">Боль: ${escapeHtml(idea.pain)}</p>
+                    <p class="small">Решение: ${escapeHtml(idea.solution)}</p>
+                    <p class="small">Стек: ${escapeHtml(idea.stack)}</p>
+                    <p class="small">Усложнения: ${escapeHtml(idea.complexity.join("; "))}</p>
+                    <p class="small">Монетизация: ${escapeHtml(idea.monetization)}</p>
+                    <p class="small">Как предлагать: ${escapeHtml(idea.channel)}</p>
+                    ${idea.note ? `<p class="small">${escapeHtml(idea.note)}</p>` : ""}
+                    <div class="row">
+                        <button class="secondary" data-action="save">⭐ Сохранить</button>
+                        <button class="secondary" data-action="rate">📊 Оценить</button>
+                        <button class="secondary" data-action="copy">📋 Копировать</button>
+                    </div>
+                    <div class="rate-panel" hidden>
+                        <p class="small">Оцени идею от 1 до 5 по каждому критерию:</p>
+                        <div class="rate-grid">
+                            ${RATE_CRITERIA.map((c) => `<label class="rate-item small">${c}${rateSelectHTML()}</label>`).join("")}
+                        </div>
+                        <div class="rate-result"></div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function persistSaved() {
+            localStorage.setItem(SAVED_KEY, JSON.stringify(savedIdeas));
+        }
+
+        function renderSaved() {
+            const list = $("savedList");
+            list.innerHTML = "";
+
+            if (savedIdeas.length === 0) {
+                list.innerHTML = '<p class="small">Пока нет сохранённых идей.</p>';
+                return;
+            }
+
+            savedIdeas.forEach((idea, i) => {
+                const item = document.createElement("div");
+                item.className = "saved-item";
+
+                item.innerHTML = `
+                    <p class="small"><strong>${escapeHtml(idea.title)}</strong>${idea.rating ? ` · ${idea.rating.total}/30` : ""}<br>${DEVICE_LABELS[idea.device]} · ${DIFFICULTY_LABELS[idea.difficulty]}</p>
+                    <div class="row">
+                        <button class="secondary" data-saved="${i}" data-act="copy">📋 Копировать</button>
+                        <button class="secondary" data-saved="${i}" data-act="del">🗑 Удалить</button>
+                    </div>
+                `;
+
+                list.appendChild(item);
+            });
+        }
+
+        function rebuildIdeaSelect() {
+            const select = $("ideaSelect");
+            select.innerHTML = "";
+
+            savedIdeas.forEach((idea, i) => {
+                const option = document.createElement("option");
+                option.value = "saved:" + i;
+                option.textContent = "⭐ " + idea.title;
+                select.appendChild(option);
+            });
+
+            generatedIdeas.forEach((idea, i) => {
+                const option = document.createElement("option");
+                option.value = "gen:" + i;
+                option.textContent = (savedIdeas.length ? "· " : "") + idea.title;
+                select.appendChild(option);
+            });
+
+            if (select.options.length === 0) {
+                const option = document.createElement("option");
+                option.value = "";
+                option.textContent = "Сначала сгенерируй или сохрани идею";
+                select.appendChild(option);
+            }
+        }
+
+        function getSelectedIdea() {
+            const value = $("ideaSelect").value;
+
+            if (!value) return null;
+
+            const [source, indexStr] = value.split(":");
+            const index = parseInt(indexStr, 10);
+
+            if (source === "saved") return savedIdeas[index] || null;
+            if (source === "gen") return generatedIdeas[index] || null;
+
+            return null;
+        }
+
+        function saveIdea(idea) {
+            if (savedIdeas.some((s) => s.id === idea.id)) {
+                showStatus("Идея уже сохранена");
+                return;
+            }
+
+            savedIdeas.push(JSON.parse(JSON.stringify(idea)));
+            persistSaved();
+            renderSaved();
+            rebuildIdeaSelect();
+            showStatus("Идея сохранена");
         }
 
         let statusTimer = null;
@@ -956,23 +1292,25 @@
             let count = parseInt(countInput.value, 10);
 
             if (Number.isNaN(count) || count < 1) {
-                count = 10;
+                count = 6;
             }
 
-            if (count > 100) {
-                count = 100;
+            if (count > 50) {
+                count = 50;
             }
 
             countInput.value = count;
 
-            const ideasText = generateIdeas(count);
-            $("ideasOutput").textContent = ideasText;
+            generatedIdeas = generateIdeas(count);
+            renderIdeas();
+            rebuildIdeaSelect();
+            handleBuildPrompt();
 
             showStatus(`Идеи сгенерированы: ${count}`);
         }
 
         function handleBuildPrompt() {
-            const ideas = $("ideasOutput").textContent.trim();
+            const ideas = allIdeasText();
             const template = $("promptTemplate").value.trim();
             const ideasToInsert = ideas || "Идеи пока не сгенерированы.";
 
@@ -985,11 +1323,120 @@
             }
 
             $("promptOutput").value = finalPrompt;
-            showStatus("Промт собран");
+        }
+
+        function buildProposal() {
+            const idea = getSelectedIdea() || generatedIdeas[0];
+
+            if (!idea) {
+                showStatus("Сначала сгенерируй или сохрани идею");
+                return;
+            }
+
+            const client = $("kpClient").value.trim() || "уважаемый клиент";
+            const price = $("kpPrice").value.trim() || "обсуждается индивидуально";
+            const term = $("kpTerm").value.trim() || "5–7 дней";
+
+            const text = `КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ
+
+Здравствуйте, ${client}!
+
+Я разрабатываю простые инструменты автоматизации для бизнеса.
+Посмотрел, как обычно работают ${idea.client}, и вижу точку, где теряются деньги и время.
+
+ВАША ЗАДАЧА
+${idea.pain}.
+
+РЕШЕНИЕ
+${idea.solution}.
+
+ЧТО ВЫ ПОЛУЧИТЕ
+- Меньше потерянных заявок и клиентов;
+- Меньше рутины для вас и сотрудников;
+- Прозрачную картину по заявкам и результатам.
+
+КАК ЭТО РАБОТАЕТ
+1. Я собираю тестовую версию за ${term}.
+2. Вы смотрите её в реальном деле.
+3. Если подходит — запускаем и подключаем сотрудников.
+
+СТОИМОСТЬ
+${price} — разработка и настройка.
+Поддержка и доработки — обсуждаются отдельно.
+
+Если актуально, готов показать рабочий пример уже на этой неделе.
+
+С уважением,
+[твоё имя]`;
+
+            $("kpOutput").value = text;
+            showStatus("КП готово");
+        }
+
+        function buildMessage() {
+            const idea = getSelectedIdea() || generatedIdeas[0];
+
+            if (!idea) {
+                showStatus("Сначала сгенерируй или сохрани идею");
+                return;
+            }
+
+            const type = $("msgType").value;
+            const name = $("msgClient").value.trim();
+            const hello = name ? `Здравствуйте, ${name}!` : "Здравствуйте!";
+
+            let text = "";
+
+            if (type === "cold") {
+                text = `${hello}
+
+Я делаю простые инструменты автоматизации для бизнеса.
+Вижу, что вы работаете в сфере: ${idea.client}. В этой нише заявки и рутина часто теряются в мессенджерах.
+
+У меня есть простое решение: ${idea.solution}.
+Обычно это экономит несколько часов в неделю и уменьшает потерю клиентов.
+
+Могу собрать тестовую версию за пару дней. Если не подойдёт — просто посмотрите пример.
+
+Показать?`;
+            }
+
+            if (type === "follow") {
+                text = `${hello}
+
+Недавно писал вам по поводу простой автоматизации заявок и записи.
+Понимаю, что вы заняты, поэтому коротко.
+
+Если актуально — готов показать рабочий пример за 5 минут.
+Если нет — просто напишите «не актуально», и я больше не буду беспокоить.`;
+            }
+
+            if (type === "pilot") {
+                text = `${hello}
+
+Предлагаю пилот: я соберу рабочую версию решения «${idea.title}» под ваш бизнес за пару дней.
+
+Вы проверите её в реальном деле, и если подойдёт — обсудим полную версию.
+Пилот стоит символически, в обмен на отзыв.
+
+Начнём?`;
+            }
+
+            if (type === "review") {
+                text = `${hello}
+
+Спасибо, что попробовали решение!
+Если несложно — напишите пару предложений, что помогло и что можно улучшить.
+
+Ваш отзыв поможет сделать продукт лучше, а вам — получить нужные доработки в первую очередь.`;
+            }
+
+            $("msgOutput").value = text;
+            showStatus("Сообщение готово");
         }
 
         async function copyText(text) {
-            if (!text.trim()) {
+            if (!text || !text.trim()) {
                 showStatus("Нечего копировать");
                 return;
             }
@@ -1015,13 +1462,13 @@
             }
         }
 
-        function downloadFile(filename, text) {
-            if (!text.trim()) {
+        function downloadFile(filename, text, mime) {
+            if (!text || !text.trim()) {
                 showStatus("Нечего скачивать");
                 return;
             }
 
-            const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+            const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
             const url = URL.createObjectURL(blob);
 
             const link = document.createElement("a");
@@ -1054,6 +1501,12 @@
             localStorage.removeItem(STORAGE_KEY);
             $("promptTemplate").value = DEFAULT_PROMPT;
             showStatus("Промт сброшен");
+        }
+
+        function applyTheme(theme) {
+            document.body.classList.toggle("light", theme === "light");
+            $("themeToggle").textContent = theme === "light" ? "🌙 Тёмная тема" : "☀️ Светлая тема";
+            localStorage.setItem(THEME_KEY, theme);
         }
 
         function roundedRect(ctx, x, y, width, height, radius) {
@@ -1116,33 +1569,10 @@
 
             ctx.moveTo(center, center - outer);
 
-            ctx.quadraticCurveTo(
-                center + inner,
-                center - inner,
-                center + outer,
-                center
-            );
-
-            ctx.quadraticCurveTo(
-                center + inner,
-                center + inner,
-                center,
-                center + outer
-            );
-
-            ctx.quadraticCurveTo(
-                center - inner,
-                center + inner,
-                center - outer,
-                center
-            );
-
-            ctx.quadraticCurveTo(
-                center - inner,
-                center - inner,
-                center,
-                center - outer
-            );
+            ctx.quadraticCurveTo(center + inner, center - inner, center + outer, center);
+            ctx.quadraticCurveTo(center + inner, center + inner, center, center + outer);
+            ctx.quadraticCurveTo(center - inner, center + inner, center - outer, center);
+            ctx.quadraticCurveTo(center - inner, center - inner, center, center - outer);
 
             ctx.closePath();
 
@@ -1244,24 +1674,117 @@
             drawIconPreviews();
             initInstallButton();
             registerServiceWorker();
+            renderSaved();
+            rebuildIdeaSelect();
 
-            $("generate").addEventListener("click", () => {
-                handleGenerate();
-                handleBuildPrompt();
+            const savedTheme = localStorage.getItem(THEME_KEY) || "dark";
+            applyTheme(savedTheme);
+
+            $("themeToggle").addEventListener("click", () => {
+                const current = localStorage.getItem(THEME_KEY) || "dark";
+                applyTheme(current === "dark" ? "light" : "dark");
             });
 
-            $("buildPrompt").addEventListener("click", handleBuildPrompt);
+            $("generate").addEventListener("click", handleGenerate);
 
             $("copyIdeas").addEventListener("click", () => {
-                copyText($("ideasOutput").textContent);
-            });
-
-            $("copyPrompt").addEventListener("click", () => {
-                copyText($("promptOutput").value);
+                copyText(allIdeasText());
             });
 
             $("downloadIdeas").addEventListener("click", () => {
-                downloadFile("ideas.txt", $("ideasOutput").textContent);
+                downloadFile("ideas.txt", allIdeasText());
+            });
+
+            $("downloadJson").addEventListener("click", () => {
+                downloadFile("ideas.json", JSON.stringify(generatedIdeas, null, 2), "application/json");
+            });
+
+            $("ideasCards").addEventListener("click", (event) => {
+                const button = event.target.closest("button[data-action]");
+                if (!button) return;
+
+                const card = button.closest(".idea-card");
+                const index = parseInt(card.dataset.index, 10);
+                const idea = generatedIdeas[index];
+
+                const action = button.dataset.action;
+
+                if (action === "save") {
+                    saveIdea(idea);
+                }
+
+                if (action === "copy") {
+                    copyText(ideaToText(idea, index + 1));
+                }
+
+                if (action === "rate") {
+                    const panel = card.querySelector(".rate-panel");
+                    panel.hidden = !panel.hidden;
+                }
+            });
+
+            $("ideasCards").addEventListener("change", (event) => {
+                if (!event.target.classList.contains("rate-select")) return;
+
+                const card = event.target.closest(".idea-card");
+                const index = parseInt(card.dataset.index, 10);
+                const idea = generatedIdeas[index];
+
+                const selects = card.querySelectorAll(".rate-select");
+                let total = 0;
+                selects.forEach((s) => {
+                    total += parseInt(s.value, 10);
+                });
+
+                const verdict = verdictFor(total);
+                idea.rating = { total: total, verdict: verdict };
+
+                card.querySelector(".rate-result").textContent =
+                    `Итог: ${total} / 30 — ${verdict}`;
+            });
+
+            $("savedList").addEventListener("click", (event) => {
+                const button = event.target.closest("button[data-saved]");
+                if (!button) return;
+
+                const index = parseInt(button.dataset.saved, 10);
+                const idea = savedIdeas[index];
+
+                if (button.dataset.act === "copy") {
+                    copyText(ideaToText(idea, index + 1));
+                }
+
+                if (button.dataset.act === "del") {
+                    savedIdeas.splice(index, 1);
+                    persistSaved();
+                    renderSaved();
+                    rebuildIdeaSelect();
+                    showStatus("Идея удалена");
+                }
+            });
+
+            $("exportSaved").addEventListener("click", () => {
+                downloadFile("saved-ideas.json", JSON.stringify(savedIdeas, null, 2), "application/json");
+            });
+
+            $("clearSaved").addEventListener("click", () => {
+                savedIdeas = [];
+                persistSaved();
+                renderSaved();
+                rebuildIdeaSelect();
+                showStatus("Сохранённые очищены");
+            });
+
+            $("buildKp").addEventListener("click", buildProposal);
+            $("copyKp").addEventListener("click", () => copyText($("kpOutput").value));
+
+            $("buildMsg").addEventListener("click", buildMessage);
+            $("copyMsg").addEventListener("click", () => copyText($("msgOutput").value));
+
+            $("buildPrompt").addEventListener("click", handleBuildPrompt);
+
+            $("copyPrompt").addEventListener("click", () => {
+                copyText($("promptOutput").value);
             });
 
             $("downloadPrompt").addEventListener("click", () => {
@@ -1313,8 +1836,7 @@
             }
 
             handleGenerate();
-            handleBuildPrompt();
         });
     </script>
 </body>
-    </html> 
+    </html>
