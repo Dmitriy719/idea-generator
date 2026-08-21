@@ -297,6 +297,7 @@
                 <button id="copyIdeas" class="secondary">Копировать идеи</button>
                 <button id="downloadIdeas" class="secondary">Скачать идеи (.txt)</button>
                 <button id="downloadJson" class="secondary">Скачать идеи (.json)</button>
+                <button id="resetHistory" class="secondary">🔄 Сбросить историю идей</button>
             </div>
 
             <div class="status" id="status"></div>
@@ -305,7 +306,8 @@
         <div class="card">
             <h2>Идеи проектов</h2>
             <p class="small">
-                ⭐ Сохранить — добавить в избранное. 📊 Оценить — поставить баллы по 6 критериям. 📋 Копировать — скопировать текст идеи.
+                Идеи не повторяются: генератор запоминает всё, что уже выдавал.
+                ⭐ Сохранить · 📊 Оценить · 📋 Копировать.
             </p>
             <div id="ideasCards"></div>
         </div>
@@ -429,6 +431,11 @@
             </div>
         </div>
     </main>
+
+    <footer class="small" style="text-align: center; padding: 16px 0;">
+        © 2026 Dmitriy719. Все права защищены.<br />
+        Копирование и использование кода без письменного разрешения автора запрещено.
+    </footer>
 
     <script>
         const DEFAULT_PROMPT = `Ты — продуктовый стратег для разработчика.
@@ -973,15 +980,24 @@
         const STORAGE_KEY = "ideaGeneratorPromptTemplate";
         const SAVED_KEY = "ideaGeneratorSavedIdeas";
         const THEME_KEY = "ideaGeneratorTheme";
+        const USED_KEY = "ideaGeneratorUsedKeys";
 
         let generatedIdeas = [];
         let savedIdeas = [];
+        let usedKeys = new Set();
         let deferredInstallPrompt = null;
+        let generationResetHappened = false;
 
         try {
             savedIdeas = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
         } catch (error) {
             savedIdeas = [];
+        }
+
+        try {
+            usedKeys = new Set(JSON.parse(localStorage.getItem(USED_KEY) || "[]"));
+        } catch (error) {
+            usedKeys = new Set();
         }
 
         window.addEventListener("beforeinstallprompt", (event) => {
@@ -1029,15 +1045,105 @@
             return result;
         }
 
-        function populateSpecializationSelect() {
-            const select = $("specialization");
+        function ideaKey(idea) {
+            return [
+                idea.title,
+                idea.client,
+                idea.device,
+                idea.difficulty,
+                idea.monetization,
+                idea.channel
+            ].join("|");
+        }
 
-            Object.entries(SPECIALIZATION_LABELS).forEach(([value, label]) => {
-                const option = document.createElement("option");
-                option.value = value;
-                option.textContent = label;
-                select.appendChild(option);
-            });
+        function persistUsed() {
+            try {
+                if (usedKeys.size > 5000) {
+                    usedKeys.clear();
+                }
+
+                localStorage.setItem(USED_KEY, JSON.stringify([...usedKeys]));
+            } catch (error) {
+                // ignore
+            }
+        }
+
+        function buildIdea(deviceFilter, difficultyFilter, specializationFilter) {
+            const device =
+                deviceFilter === "any"
+                    ? randomItem(["smartphone", "computer"])
+                    : deviceFilter;
+
+            const difficulty =
+                difficultyFilter === "any"
+                    ? randomItem(["easy", "medium", "hard", "advanced"])
+                    : difficultyFilter;
+
+            const specialization =
+                specializationFilter === "any"
+                    ? randomItem(Object.keys(PROJECT_BASES))
+                    : specializationFilter;
+
+            let actualDevice = device;
+            let baseList = PROJECT_BASES[specialization]?.[actualDevice] || [];
+
+            if (baseList.length === 0) {
+                actualDevice = actualDevice === "smartphone" ? "computer" : "smartphone";
+                baseList = PROJECT_BASES[specialization]?.[actualDevice] || [];
+            }
+
+            if (baseList.length === 0) {
+                baseList = PROJECT_BASES.automation.smartphone;
+                actualDevice = "smartphone";
+            }
+
+            const base = randomItem(baseList);
+
+            const complexityCount =
+                difficulty === "easy"
+                    ? 2
+                    : difficulty === "medium"
+                    ? 3
+                    : difficulty === "hard"
+                    ? 4
+                    : 5;
+
+            let note = "";
+
+            if (actualDevice === "smartphone" && (difficulty === "hard" || difficulty === "advanced")) {
+                note = "Примечание: для части сложных задач может понадобиться VPS, компьютер или облако.";
+            }
+
+            return {
+                id: Date.now() + "-" + Math.floor(Math.random() * 1000000000),
+                title: base.title,
+                device: actualDevice,
+                difficulty: difficulty,
+                specialization: specialization,
+                client: base.client,
+                pain: base.pain,
+                solution: base.solution,
+                stack: base.stack,
+                complexity: chooseSome(DIFFICULTY_TASKS[difficulty], complexityCount),
+                monetization: randomItem(MONETIZATION),
+                channel: randomItem(CHANNELS),
+                note: note,
+                rating: null
+            };
+        }
+
+        function tryUniqueIdea(deviceFilter, difficultyFilter, specializationFilter) {
+            for (let attempt = 0; attempt < 400; attempt++) {
+                const candidate = buildIdea(deviceFilter, difficultyFilter, specializationFilter);
+                const key = ideaKey(candidate);
+
+                if (!usedKeys.has(key)) {
+                    usedKeys.add(key);
+                    return candidate;
+                }
+            }
+
+            return null;
         }
 
         function generateIdeas(count) {
@@ -1046,71 +1152,24 @@
             const specializationFilter = $("specialization").value;
 
             const ideas = [];
+            generationResetHappened = false;
 
             for (let i = 0; i < count; i++) {
-                const device =
-                    deviceFilter === "any"
-                        ? randomItem(["smartphone", "computer"])
-                        : deviceFilter;
+                let idea = tryUniqueIdea(deviceFilter, difficultyFilter, specializationFilter);
 
-                const difficulty =
-                    difficultyFilter === "any"
-                        ? randomItem(["easy", "medium", "hard", "advanced"])
-                        : difficultyFilter;
+                if (!idea) {
+                    usedKeys.clear();
+                    generationResetHappened = true;
 
-                const specialization =
-                    specializationFilter === "any"
-                        ? randomItem(Object.keys(PROJECT_BASES))
-                        : specializationFilter;
-
-                let actualDevice = device;
-                let baseList = PROJECT_BASES[specialization]?.[actualDevice] || [];
-
-                if (baseList.length === 0) {
-                    actualDevice = actualDevice === "smartphone" ? "computer" : "smartphone";
-                    baseList = PROJECT_BASES[specialization]?.[actualDevice] || [];
+                    idea = tryUniqueIdea(deviceFilter, difficultyFilter, specializationFilter);
                 }
 
-                if (baseList.length === 0) {
-                    baseList = PROJECT_BASES.automation.smartphone;
-                    actualDevice = "smartphone";
+                if (idea) {
+                    ideas.push(idea);
                 }
-
-                const base = randomItem(baseList);
-
-                const complexityCount =
-                    difficulty === "easy"
-                        ? 2
-                        : difficulty === "medium"
-                        ? 3
-                        : difficulty === "hard"
-                        ? 4
-                        : 5;
-
-                let note = "";
-
-                if (actualDevice === "smartphone" && (difficulty === "hard" || difficulty === "advanced")) {
-                    note = "Примечание: для части сложных задач может понадобиться VPS, компьютер или облако.";
-                }
-
-                ideas.push({
-                    id: Date.now() + "-" + i + "-" + Math.floor(Math.random() * 100000),
-                    title: base.title,
-                    device: actualDevice,
-                    difficulty: difficulty,
-                    specialization: specialization,
-                    client: base.client,
-                    pain: base.pain,
-                    solution: base.solution,
-                    stack: base.stack,
-                    complexity: chooseSome(DIFFICULTY_TASKS[difficulty], complexityCount),
-                    monetization: randomItem(MONETIZATION),
-                    channel: randomItem(CHANNELS),
-                    note: note,
-                    rating: null
-                });
             }
 
+            persistUsed();
             return ideas;
         }
 
@@ -1306,7 +1365,11 @@
             rebuildIdeaSelect();
             handleBuildPrompt();
 
-            showStatus(`Идеи сгенерированы: ${count}`);
+            if (generationResetHappened) {
+                showStatus(`Идеи: ${count}. Уникальные комбинации закончились — история сброшена`);
+            } else {
+                showStatus(`Идеи сгенерированы: ${count} (без повторов)`);
+            }
         }
 
         function handleBuildPrompt() {
@@ -1699,6 +1762,12 @@ ${price} — разработка и настройка.
                 downloadFile("ideas.json", JSON.stringify(generatedIdeas, null, 2), "application/json");
             });
 
+            $("resetHistory").addEventListener("click", () => {
+                usedKeys.clear();
+                persistUsed();
+                showStatus("История идей сброшена — повторы снова возможны");
+            });
+
             $("ideasCards").addEventListener("click", (event) => {
                 const button = event.target.closest("button[data-action]");
                 if (!button) return;
@@ -1837,6 +1906,47 @@ ${price} — разработка и настройка.
 
             handleGenerate();
         });
+
+        function populateSpecializationSelect() {
+            const select = $("specialization");
+
+            Object.entries(SPECIALIZATION_LABELS).forEach(([value, label]) => {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+        }
+    </script>
+
+    <script>
+        // ===== ЗАЩИТА ИНТЕЛЛЕКТУАЛЬНОЙ СОБСТВЕННОСТИ =====
+        console.log(
+            "%c© 2026 Dmitriy719. Все права защищены.",
+            "font-size:16px;font-weight:bold;color:#2563eb;"
+        );
+        console.log(
+            "Копирование и использование кода без письменного разрешения автора запрещено."
+        );
+
+        document.addEventListener("contextmenu", (event) => event.preventDefault());
+        document.addEventListener("dragstart", (event) => event.preventDefault());
+
+        document.addEventListener("keydown", (event) => {
+            const key = (event.key || "").toLowerCase();
+
+            if (event.key === "F12") {
+                event.preventDefault();
+            }
+
+            if ((event.ctrlKey || event.metaKey) && ["u", "s", "c", "x"].includes(key)) {
+                event.preventDefault();
+            }
+
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey && ["i", "j", "c"].includes(key)) {
+                event.preventDefault();
+            }
+        });
     </script>
 </body>
-    </html>
+</html>
